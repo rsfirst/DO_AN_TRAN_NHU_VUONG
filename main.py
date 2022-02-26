@@ -1,3 +1,4 @@
+from struct import pack
 from tkinter import*
 from tkinter import ttk
 from PIL import Image, ImageTk
@@ -10,6 +11,11 @@ import hashlib
 from PreprocessingImage import *
 from ConnectionManage import *
 from FaceRecognition import FaceRecognitionClass
+from tkcalendar import DateEntry
+from datetime import datetime
+from tkinter import filedialog
+import face_recognition
+from PreprocessingImage import *
 conMana = ConnectionManage()
 
 ############################################# FUNCTIONS ################################################
@@ -64,7 +70,7 @@ class login_window:
         self.txtpass.place(x=40, y=250, width=270)
         # loginBuutton
         loginbtn = Button(frame, command=self.login, text="Đăng nhập", font=(
-            "times new roman", 15, "bold"), bd=3, relief=RIDGE, bg="#ed1e23", fg="white")
+            "times new roman", 15, "bold"), bd=3, relief=RIDGE, bg="#0094cf", fg="white")
         loginbtn.place(x=110, y=300, width=120, height=35)
 
 
@@ -77,7 +83,6 @@ class login_window:
                 con = conMana.getConnection()
                 cur = con.cursor()
                 sql = "select * from SEC_USER where upper(USERNAME)= upper(:userName) and PASS = :passWord and status = 1 "
-                print(str(hashlib.md5(self.txtpass.get().encode('utf8')).hexdigest()))
                 cur.execute(sql,userName =  self.txtuser.get(),passWord =str(hashlib.md5(self.txtpass.get().encode('utf8')).hexdigest()) )
                 row = cur.fetchone()
                 if row==None:
@@ -95,6 +100,7 @@ class login_window:
                 con.close()
 class Face_Recognition_System:
     def __init__(self,user):
+        self.userLogin = user
         winMain = Tk()
         self.root = winMain
         app_width = 1450
@@ -152,7 +158,7 @@ class Face_Recognition_System:
                         bg="white", fg="#0094cf")
         btn2_2.place(x=520, y=100, width=300, height=150)
 
-        btn3_3 = Button(bg_img, text="Attendance", cursor="hand2", command=self.attendance_data, font=("Algerian", 20, "bold"),
+        btn3_3 = Button(bg_img, text="Quản lý nhân viên", cursor="hand2", command=self.staffManage, font=("Algerian", 20, "bold"),
                         bg="darkblue", fg="white")
         btn3_3.place(x=980, y=100, width=300, height=150)
 
@@ -187,9 +193,9 @@ class Face_Recognition_System:
         self.new_window=Toplevel(self.root)
         self.app=FaceRecognitionClass(self.new_window,model,label_encoder)  
 
-    def attendance_data(self):
+    def staffManage(self):
         self.new_window=Toplevel(self.root)
-        #self.app=Attendance(self.new_window)  
+        self.app=Staff_Manage(self.new_window,self.userLogin)
 
 # .................exit button
     def iexit(self):
@@ -199,7 +205,513 @@ class Face_Recognition_System:
         else:
             return
 
+class Staff_Manage:
+    state_form = 'DEFAULT'
+    def __init__(self,root,user):
+        self.userLogin = user[1]
+        self.var_id=StringVar()
+        self.var_fullName=StringVar()
+        self.var_position=StringVar()
+        self.var_gender=StringVar()
+        self.var_idCard=StringVar()
+        self.var_doi=StringVar()
+        self.var_dop=StringVar()
+        self.var_dob=StringVar()
+        self.var_phone=StringVar()
+        self.var_address=StringVar()
+        self.var_status=StringVar()
+        self.var_folderPath = StringVar()
+        self.root = root
+        app_width = 1880
+        app_height = 1000
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width / 2) - (app_width / 2)
+        y = (screen_height / 2) - (app_height / 2) -30
+        self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+        self.root.resizable(False,False)
+        self.root.title("Quản lý nhân viên")
+        self.root.configure(background='#0094cf')
+        frameMain = Frame(self.root, bg="#fff",highlightbackground="black",highlightthickness=1)
+        frameMain.place(relx=0.006, rely=0.015, relwidth=0.984, relheight=0.88)
+        frameHeader = Frame(frameMain, bg="#fff",highlightbackground="black",highlightthickness=1)
+        frameHeader.place(relx=0, rely=0, relwidth=1, relheight=0.06)
+        title_lbl=Label(frameHeader,text="Quản lý nhân viên",font=("Calibri",30,"bold"),bg="white",fg="#0094cf")
+        title_lbl.place(x=0, y=0,relwidth=1,height=50)
+        frame1 = LabelFrame(frameMain, bg="#fff",bd=2,relief=RIDGE,text="Thông tin nhân viên",font=("Calibri",14,"bold"))
+        frame1.place(x=10, y=60, width=900,height=700)
 
+        frame2 = LabelFrame(frameMain, bg="#fff",bd=2,relief=RIDGE,text="Danh sách nhân viên",font=("Calibri",14,"bold"))
+        frame2.place(x=935, y=60, width=900,height=700)
+
+        lblId = Label(frame1, text="Mã nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblId.place(x=30, y=20)
+        self.txtId = Entry(frame1,textvariable=self.var_id,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtId.place(x=160, y=20)
+        self.txtId.configure(state='disabled')
+
+        lblFullName = Label(frame1, text="Tên nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblFullName.place(x=470, y=20)
+        self.txtFullName = Entry(frame1,textvariable=self.var_fullName,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtFullName.place(x=600, y=20)
+        self.txtFullName.configure(state='disabled')
+
+        lblPosition = Label(frame1, text="Chức vụ : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblPosition.place(x=30, y=70)
+        self.cboPosition = ttk.Combobox(frame1,textvariable=self.var_position,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboPosition.place(x=160, y=70)
+        self.cboPosition["values"]=("Giám đốc","Trưởng phòng","Nhân viên")
+        self.cboPosition.current(0)
+        self.cboPosition.configure(state='disabled')
+
+        lblGender = Label(frame1, text="Giới tính : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblGender.place(x=470, y=70)
+        self.cboGender = ttk.Combobox(frame1,textvariable=self.var_gender,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboGender.place(x=600, y=70)
+        self.cboGender["values"]=("Nam","Nữ")
+        self.cboGender.current(0)
+        self.cboGender.configure(state='disabled')
+
+        lblCmnd = Label(frame1, text="Số CMND : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblCmnd.place(x=30, y=120)
+        self.txtCmnd = Entry(frame1,textvariable=self.var_idCard,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtCmnd.place(x=160, y=120)
+        self.txtCmnd.configure(state='disabled')
+
+        lblDateOfIssue = Label(frame1, text="Ngày cấp : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblDateOfIssue.place(x=470, y=120)
+        self.calDateOfIssue = DateEntry(frame1,textvariable=self.var_doi, width=37,locale='en_US', date_pattern='dd/mm/y',
+         background='darkblue', foreground='white', borderwidth=2)
+        self.calDateOfIssue.place(x=600, y=120)
+        self.calDateOfIssue.configure(state='disabled')
+
+        lblPlaceOfIssue = Label(frame1, text="Nơi cấp : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblPlaceOfIssue.place(x=30, y=170)
+        self.txtPlaceOfIssue = Entry(frame1,textvariable=self.var_dop,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtPlaceOfIssue.place(x=160, y=170)
+        self.txtPlaceOfIssue.configure(state='disabled')
+
+        lblStatus = Label(frame1, text="Trạng thái : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblStatus.place(x=470, y=170)
+        self.cboStatus = ttk.Combobox(frame1,textvariable=self.var_status,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboStatus.place(x=600, y=170)
+        self.cboStatus["values"]=("ACTIVE","INACTIVE")
+        self.cboStatus.current(0)
+        self.cboStatus.configure(state='disabled')
+
+        lblDateOfBirth = Label(frame1, text="Ngày sinh : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblDateOfBirth.place(x=30, y=220)
+        self.calDateOfBirth = DateEntry(frame1,textvariable=self.var_dob, width=37,locale='en_US', date_pattern='dd/mm/y',
+         background='darkblue', foreground='white', borderwidth=2)
+        self.calDateOfBirth.place(x=160, y=220)
+        self.calDateOfBirth.configure(state='disabled')
+
+        lblPhone = Label(frame1, text="Số điện thoại : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblPhone.place(x=470, y=220)
+        self.txtPhone = Entry(frame1,textvariable=self.var_phone,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtPhone.place(x=600, y=220)
+        self.txtPhone.configure(state='disabled')
+
+        lblAddress = Label(frame1, text="Địa chỉ : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold '))
+        lblAddress.place(x=30, y=270)
+        self.txtAddress = Entry(frame1,textvariable=self.var_address,width=85 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtAddress.place(x=160, y=270)
+        self.txtAddress.configure(state='disabled')
+
+        lblFolderPath = Label(frame1, text="Thư mục ảnh : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold '))
+        lblFolderPath.place(x=30, y=320)
+        self.txtFolderPath = Entry(frame1,textvariable=self.var_folderPath,width=85 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtFolderPath.place(x=160, y=320)
+        self.txtFolderPath.configure(state='disabled')
+
+        table_frame=Frame(frame2,bd=2,bg="white",relief=RIDGE)
+        table_frame.place(x=5,y=150,width=880,height=350)
+        scroll_x=ttk.Scrollbar(table_frame,orient=HORIZONTAL)
+        scroll_y=ttk.Scrollbar(table_frame,orient=VERTICAL) 
+        self.student_table=ttk.Treeview(table_frame,column=("staffId","fullName","gender","idCard","idIssuedDate","idIssuedPlace","birthDay",
+        "address","phone","position","status"),xscrollcommand=scroll_x.set,yscrollcommand=scroll_y.set)
+        scroll_x.pack(side=BOTTOM,fill=X)
+        scroll_y.pack(side=RIGHT,fill=Y)
+        scroll_x.config(command=self.student_table.xview)
+        scroll_y.config(command=self.student_table.yview)
+        self.student_table.heading("staffId",text="Mã nhân viên")
+        self.student_table.heading("fullName",text="Tên nhân viên")
+        self.student_table.heading("gender",text="Giới tính")
+        self.student_table.heading("idCard",text="Số CMND")
+        self.student_table.heading("idIssuedDate",text="Ngày cấp")
+        self.student_table.heading("idIssuedPlace",text="Nơi cấp")
+        self.student_table.heading("birthDay",text="Ngày sinh")
+        self.student_table.heading("address",text="Địa chỉ")
+        self.student_table.heading("phone",text="Số điện thoại")
+        self.student_table.heading("position",text="Chức vụ")
+        self.student_table.heading("status",text="Trạng thái")
+        self.student_table["show"]="headings"
+
+        self.student_table.column("staffId",width=100)
+        self.student_table.column("fullName",width=200)
+        self.student_table.column("gender",width=100)
+        self.student_table.column("idCard",width=100)
+        self.student_table.column("idIssuedDate",width=150)
+        self.student_table.column("idIssuedPlace",width=200)
+        self.student_table.column("birthDay",width=150)
+        self.student_table.column("address",width=300)
+        self.student_table.column("phone",width=100)
+        self.student_table.column("position",width=100)
+        self.student_table.column("status",width=100)
+        self.student_table.pack(fill=BOTH,expand=1)
+
+        self.student_table.bind("<ButtonRelease>",self.get_cursor)
+        
+        self.fetch_data()
+        self.btnSave = Button(frame1, text="Lưu", command=self.saveData  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnReject = Button(frame1, text="Bỏ qua", command=self.reject  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnChooseFolder = Button(frame1, text="Browser", command=self.selectFolder  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnGetImage = Button(frame1, text="Chụp ảnh", command=self.getImage  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnTranning = Button(frame1, text="Tranning ảnh", command=self.tranningImage  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+
+
+        self.btnAdd = Button(frame1, text="Thêm", command=self.add  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnAdd.place(x=230, y=370)
+        self.btnUpdate = Button(frame1, text="Sửa", command=self.update  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnUpdate.place(x=380, y=370)
+        self.btnDelete = Button(frame1, text="Xóa", command=self.delete  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnDelete.place(x=530, y=370)
+    def fetch_data(self):
+        try: 
+            con = conMana.getConnection()
+            cur = con.cursor()
+            sql = "select * from STAFF where status <> 'DELETE' order by CREATE_DATE desc "
+            cur.execute(sql )
+            data = cur.fetchall()
+            if len(data)!=0:
+                self.student_table.delete(*self.student_table.get_children())
+                for i in data:
+                    self.student_table.insert("",END,values=i)
+        except cx_Oracle.DatabaseError as e: 
+            print("There is a problem with Oracle", e)
+        finally:
+            if con: 
+                con.close()
+    def get_cursor(self,event=""):
+        cursor_focus=self.student_table.focus()
+        content=self.student_table.item(cursor_focus)
+        data=content["values"]
+        if(data != None):
+            self.var_id.set(data[0]),
+            self.var_fullName.set(data[1]),
+            self.var_gender.set(data[2]),
+            self.var_idCard.set(data[3]),
+            self.var_doi.set(datetime.strptime(data[4][0:10], '%Y-%m-%d').strftime("%d/%m/%Y")),
+            self.var_dop.set(data[5]),
+            self.var_dob.set(datetime.strptime(data[6][0:10], '%Y-%m-%d').strftime("%d/%m/%Y")),
+            self.var_address.set(data[7]),
+            self.var_phone.set(data[8]),
+            self.var_position.set(data[9]), 
+            self.var_status.set(data[10])
+            self.btnChooseFolder.place(x=230, y=420)
+            self.btnGetImage.place(x=380, y=420)
+            self.btnTranning.place(x=530, y=420)
+        else :
+            self.btnChooseFolder.place_forget()
+            self.btnGetImage.place_forget()
+            self.btnTranning.place_forget()
+    def add(self):
+        self.btnAdd.place_forget()
+        self.btnUpdate.place_forget()
+        self.btnDelete.place_forget()
+        self.btnSave.place(x=300, y=370)
+        self.btnReject.place(x=450, y=370)
+        self.btnChooseFolder.place_forget()
+        self.btnGetImage.place_forget()
+        self.btnTranning.place_forget()
+        self.stateField('normal','readonly')
+        id = self.getNewId()
+        self.txtId.configure(state='normal')
+        self.txtId.delete(0,"end")
+        self.txtId.insert(0,str(id))
+        self.txtId.configure(state='disabled')
+        global state_form
+        state_form = 'ADD'
+        self.clearData()
+    def update(self):
+        if(self.txtId.get() == None or self.txtId.get() == ''):
+            messagebox.showerror("Thông báo","Bạn chưa chọn bản ghi nào!",parent=self.root)
+            return
+        self.btnAdd.place_forget()
+        self.btnUpdate.place_forget()
+        self.btnDelete.place_forget()
+        self.btnSave.place(x=300, y=370)
+        self.btnReject.place(x=450, y=370)
+        self.btnChooseFolder.place_forget()
+        self.btnGetImage.place_forget()
+        self.btnTranning.place_forget()
+        self.stateField('normal','readonly')
+        global state_form
+        state_form = 'UPDATE'
+        self.txtFolderPath.configure(state='normal')
+        self.txtFolderPath.delete(0,"end")
+        self.txtFolderPath.insert(0,str(''))
+        self.txtFolderPath.configure(state='disabled')
+    def delete(self):
+        if(self.txtId.get() == None or self.txtId.get() == ''):
+            messagebox.showerror("Thông báo","Bạn chưa chọn bản ghi nào!",parent=self.root)
+            return
+        answer = messagebox.askyesno(title='Thông báo',
+                    message='Bạn có chắc chắn muốn xóa nhân viên '+self.txtId.get() +' ?',parent=self.root)
+        if answer:
+            try: 
+                con = conMana.getConnection()
+                cur = con.cursor()
+                sql = "UPDATE staff SET STATUS = 'DELETE',DELETE_DATE = sysdate,DELETE_USER = :deleteUser where STAFF_ID = :staffId "
+                cur.execute(sql , staffId = int(self.var_id.get()),
+                                    deleteUser=self.userLogin
+                                    )
+                con.commit()
+                self.fetch_data()
+                messagebox.showinfo("Thông báo","Xóa nhân viên "+self.var_id.get()+' thành công!',parent=self.root)
+                self.reject()
+                self.txtId.configure(state='normal')
+                self.txtId.delete(0,"end")
+                self.txtId.insert(0,str(''))
+                self.txtId.configure(state='disabled')
+                self.txtFullName.configure(state='normal')
+                self.txtFullName.delete(0,"end")
+                self.txtFullName.insert(0,str(''))
+                self.txtFullName.configure(state='disabled')
+                self.cboPosition.configure(state='normal')
+                self.cboPosition.current(0)
+                self.cboPosition.configure(state='disabled')
+                self.cboGender.configure(state='normal')
+                self.cboGender.current(0)
+                self.cboGender.configure(state='disabled')
+                self.txtCmnd.configure(state='normal')
+                self.txtCmnd.delete(0,"end")
+                self.txtCmnd.insert(0,str(''))
+                self.txtCmnd.configure(state='disabled')
+                self.txtPlaceOfIssue.configure(state='normal')
+                self.txtPlaceOfIssue.delete(0,"end")
+                self.txtPlaceOfIssue.insert(0,str(''))
+                self.txtPlaceOfIssue.configure(state='disabled')
+                self.cboStatus.configure(state='normal')
+                self.cboStatus.current(0)
+                self.cboStatus.configure(state='disabled')
+                self.txtPhone.configure(state='normal')
+                self.txtPhone.delete(0,"end")
+                self.txtPhone.insert(0,str(''))
+                self.txtPhone.configure(state='disabled')
+                self.txtAddress.configure(state='normal')
+                self.txtAddress.delete(0,"end")
+                self.txtAddress.insert(0,str(''))
+                self.txtAddress.configure(state='disabled')
+                self.txtFolderPath.configure(state='normal')
+                self.txtFolderPath.delete(0,"end")
+                self.txtFolderPath.insert(0,str(''))
+                self.txtFolderPath.configure(state='disabled')
+            except cx_Oracle.DatabaseError as e: 
+                messagebox.showerror("Thông báo","Đã lỗi: "+str(e),parent=self.root)
+            finally:
+                if con: 
+                    con.close()
+    def reject(self):
+        self.btnSave.place_forget()
+        self.btnReject.place_forget()
+        self.btnAdd.place(x=230, y=370)
+        self.btnUpdate.place(x=380, y=370)
+        self.btnDelete.place(x=530, y=370)
+        self.btnChooseFolder.place_forget()
+        self.btnGetImage.place_forget()
+        self.btnTranning.place_forget()
+        self.clearData()
+        self.stateField('disabled','disabled')
+        global state_form
+        state_form = 'DEFAULT'
+    def stateField(self,status,statusCombobox):
+        self.txtFullName.configure(state=status)
+        self.cboPosition.configure(state=statusCombobox)
+        self.cboGender.configure(state=statusCombobox)
+        self.txtCmnd.configure(state=status)
+        self.calDateOfIssue.configure(state=status)
+        self.txtPlaceOfIssue.configure(state=status)
+        self.cboStatus.configure(state=statusCombobox)
+        self.calDateOfBirth.configure(state=status)
+        self.txtPhone.configure(state=status)
+        self.txtAddress.configure(state=status)
+    def getNewId(self) :
+        try: 
+            con = conMana.getConnection()
+            cur = con.cursor()
+            sql = "select STAFF_SEQ.nextval from dual"
+            cur.execute(sql )
+            row = cur.fetchone()
+        except cx_Oracle.DatabaseError as e: 
+            print("There is a problem with Oracle", e)
+        finally:
+            if con: 
+                con.close()
+        return row[0]
+    def clearData(self) :
+        self.txtId.configure(state='normal')
+        self.txtId.delete(0,"end")
+        self.txtId.insert(0,str(''))
+        self.txtId.configure(state='disabled')
+        self.txtFullName.delete(0,"end")
+        self.txtFullName.insert(0,str(''))
+        self.cboPosition.current(0)
+        self.cboGender.current(0)
+        self.txtCmnd.delete(0,"end")
+        self.txtCmnd.insert(0,str(''))
+        self.txtPlaceOfIssue.delete(0,"end")
+        self.txtPlaceOfIssue.insert(0,str(''))
+        self.cboStatus.current(0)
+        self.txtPhone.delete(0,"end")
+        self.txtPhone.insert(0,str(''))
+        self.txtAddress.delete(0,"end")
+        self.txtAddress.insert(0,str(''))
+        self.txtFolderPath.delete(0,"end")
+        self.txtFolderPath.insert(0,str(''))
+    def saveData(self) :
+        if(self.validForm() == 'FAILD'):
+            return
+        if(state_form == 'ADD'):
+            try: 
+                con = conMana.getConnection()
+                cur = con.cursor()
+                sql = "insert into staff(STAFF_ID,FULL_NAME,GENDER,ID_CARD,ID_ISSUED_DATE,ID_ISSUED_PLACE,BIRTHDAY,ADDRESS,PHONE,POSITION,STATUS,CREATE_DATE,CREATE_USER,UPDATE_DATE,UPDATE_USER,DELETE_DATE,DELETE_USER) values(:staffId,:fullName,:gender,:idCard,to_date(:doi,'dd/MM/yyyy'),:dop,to_date(:dob,'dd/MM/yyyy') ,:address,:phone,:position,:status,sysdate,:createUser,null,null,null,null)"
+                cur.execute(sql , staffId = int(self.var_id.get()),
+                                    fullName=self.var_fullName.get(),
+                                    gender=self.var_gender.get(),
+                                    idCard=self.var_idCard.get(),
+                                    doi=self.var_doi.get(),
+                                    dop=self.var_dop.get(),
+                                    dob=self.var_dob.get(),
+                                    address=self.var_address.get(),
+                                    phone=self.var_phone.get(),
+                                    position=self.var_position.get(),
+                                    status=self.var_status.get(),
+                                    createUser=self.userLogin
+                                    )
+                con.commit()
+                self.fetch_data()
+                messagebox.showinfo("Thông báo","Thêm nhân viên "+self.var_id.get()+' thành công!',parent=self.root)
+                self.reject()
+            except cx_Oracle.DatabaseError as e: 
+                messagebox.showerror("Thông báo","Đã lỗi: "+str(e),parent=self.root)
+            finally:
+                if con: 
+                    con.close()
+        else :
+            try: 
+                con = conMana.getConnection()
+                cur = con.cursor()
+                sql = "UPDATE staff SET FULL_NAME =:fullName,GENDER = :gender,ID_CARD = :idCard,ID_ISSUED_DATE = to_date(:doi,'dd/MM/yyyy'),ID_ISSUED_PLACE = :dop,BIRTHDAY = to_date(:dob,'dd/MM/yyyy'),ADDRESS = :address,PHONE = :phone,POSITION = :position,STATUS = :status,UPDATE_DATE = sysdate,UPDATE_USER = :updateUser where STAFF_ID = :staffId "
+                cur.execute(sql , staffId = int(self.var_id.get()),
+                                    fullName=self.var_fullName.get(),
+                                    gender=self.var_gender.get(),
+                                    idCard=self.var_idCard.get(),
+                                    doi=self.var_doi.get(),
+                                    dop=self.var_dop.get(),
+                                    dob=self.var_dob.get(),
+                                    address=self.var_address.get(),
+                                    phone=self.var_phone.get(),
+                                    position=self.var_position.get(),
+                                    status=self.var_status.get(),
+                                    updateUser=self.userLogin
+                                    )
+                con.commit()
+                self.fetch_data()
+                messagebox.showinfo("Thông báo","Cập nhật nhân viên "+self.var_id.get()+' thành công!',parent=self.root)
+                self.reject()
+            except cx_Oracle.DatabaseError as e: 
+                messagebox.showerror("Thông báo","Đã lỗi: "+str(e),parent=self.root)
+            finally:
+                if con: 
+                    con.close()
+            
+    def validForm(self):
+        if(self.var_fullName.get() == None or self.var_fullName.get() == ''):
+            messagebox.showerror("Thông báo","Không được để trống họ tên nhân viên!",parent=self.root)
+            return 'FAILD'
+        if(self.var_idCard.get() == None or self.var_idCard.get() == ''):
+            messagebox.showerror("Thông báo","Không được để trống số CMND nhân viên!",parent=self.root)
+            return 'FAILD'
+        if(self.var_dop.get() == None or self.var_dop.get() == ''):
+            messagebox.showerror("Thông báo","Không được để trống nơi cấp nhân viên!",parent=self.root)
+            return 'FAILD'
+        if(self.var_phone.get() == None or self.var_phone.get() == ''):
+            messagebox.showerror("Thông báo","Không được để trống số điện thoại nhân viên!",parent=self.root)
+            return 'FAILD'
+        if(self.var_address.get() == None or self.var_address.get() == ''):
+            messagebox.showerror("Thông báo","Không được để trống địa chỉ nhân viên!",parent=self.root)
+            return 'FAILD'
+        return 'SUCCESS'
+    def selectFolder(self):
+        filename = filedialog.askdirectory(parent=self.root)
+        self.var_folderPath.set(filename)
+    def getImage(self):
+        cap = cv2.VideoCapture(0)
+        count = 0
+        now = datetime.now()
+        dt_string = now.strftime("%d%m%Y%H%M%S")
+        print('Start Capture Image ........ - >>>')
+        while True:  
+            ret, frame = cap.read()
+            face_locations = face_recognition.face_locations(frame)
+            for (top, right, bottom, left) in face_locations:
+                cv2.rectangle(frame, (left, top-20), (right, bottom+5), (0,255,0), 2)
+            if not os.path.exists('TrainingImage'+'_'+dt_string+'/'+self.var_id.get()+'-'+self.var_fullName.get()):
+                    os.makedirs('TrainingImage'+'_'+dt_string+'/'+self.var_id.get()+'-'+self.var_fullName.get())
+            count +=1
+            if(len(face_locations) > 0):
+                print('TrainingImage'+'_'+dt_string+'/'+self.var_id.get()+'-'+self.var_fullName.get()+'/'+self.var_id.get()+'_'+str(count) + '.jpg')
+                cv2.imwrite('TrainingImage'+'_'+dt_string+'/'+self.var_id.get()+'-'+self.var_fullName.get()+'/'+self.var_id.get()+'_'+str(count) + '.jpg',frame[top-20:bottom+5, left:right])
+            cv2.imshow('Image' ,frame)
+            cv2.waitKey(1)
+            if(count>200):
+                self.txtFolderPath.configure(state='normal')
+                self.txtFolderPath.delete(0,"end")
+                self.txtFolderPath.insert(0,str('TrainingImage'+'_'+dt_string))
+                self.txtFolderPath.configure(state='disabled')               
+                break
+        print('End Capture Image ........< --')
+        cap.release()
+        cv2.destroyAllWindows()
+        messagebox.showinfo("Thông báo","Chụp ảnh nhân viên "+self.var_id.get()+' thành công!',parent=self.root)
+    def tranningImage(self):
+        if(self.var_folderPath.get() == None or self.var_folderPath.get() == ''):
+            messagebox.showerror("Thông báo","Bạn chưa chọn thư mục để trainning!",parent=self.root)
+        '''tiền xử lý dữ liệu rồi lưu thành 1 file npz để thuận tiện cho việc train và update model'''
+        pre = PreprocessingFaceImg()
+        #load folder train,thay ten model muon train
+        link = self.var_folderPath.get()
+        X_train, labels = pre.ManyFaceFeatures(link)
+        X_train = X_train.T
+        #update model
+        x_train_new = []
+        if os.path.isfile('image_train_success/image_train_success.npz'):
+            print("Start Update model-->")
+            data = np.load('image_train_success/image_train_success.npz')
+            x_data, x_data_label = data['arr_0'], data['arr_1']
+            np.concatenate((x_data, X_train))
+            x_train_new = np.vstack((np.array(x_data), np.array(X_train)))
+            x_label_new = np.append(x_data_label,labels)
+            print("Update model success-->")
+        else:
+            x_train_new = X_train
+            x_label_new = labels
+        #luu model update
+        np.savez_compressed('image_train_success/image_train_success.npz', x_train_new, x_label_new)
+        global model
+        global label_encoder
+        print("Start--->")
+        MAndP = ModelAndPrediction()
+        label_encoder = LabelEncoder()
+        data = np.load('image_train_success/image_train_success.npz')
+        x_train, x_label = data['arr_0'], data['arr_1']
+        x_label = label_encoder.fit_transform(x_label)
+        model = MAndP.BuiltModel(x_train, x_label)
+        print("Start End--->")
+        messagebox.showinfo("Thông báo","Trainning ảnh nhân viên "+self.var_id.get()+' thành công!',parent=self.root)
+        print("----> Train image success")
 if __name__ == "__main__":
     global model
     global label_encoder
@@ -210,8 +722,6 @@ if __name__ == "__main__":
     x_train, x_label = data['arr_0'], data['arr_1']
     x_label = label_encoder.fit_transform(x_label)
     model = MAndP.BuiltModel(x_train, x_label)
-    global key
-    key = ''
     print("Start End--->")
     main()
                 

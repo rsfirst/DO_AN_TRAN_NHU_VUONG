@@ -4,21 +4,21 @@ from datetime import date
 class Staff:
     staffId : int
     fullName : str
-    gender : int
+    gender : str
     idCard : int
     idIssuedDate : date
     idIssuedPlace : str
     birthDay : date
     address : str
     phone : str
-    deptId : int
-    status : int
+    deptId : str
+    status : str
     createDate : date
-    createUser : int
+    createUser : str
     updateDate : date
-    updateUser : int
+    updateUser : str
     deleteDate : date
-    deleteUser : int
+    deleteUser : str
     def setStaffId(self, staffId):
         self.staffId = staffId
     def getStaffId(self):

@@ -28,14 +28,14 @@ class FaceRecognitionClass:
         model = modelValue
         label_encoder = label_encoderValue
         self.root=root
-        app_width = 1800
-        app_height = 980
+        app_width = 1880
+        app_height = 1000
         global isCloseCamera
         isCloseCamera = 'OPEN'
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width / 2) - (app_width / 2)
-        y = (screen_height / 2) - (app_height / 2)
+        y = (screen_height / 2) - (app_height / 2) -30
         self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
         self.root.resizable(False,False)
         self.root.title("Hệ thống chấm công")
@@ -45,7 +45,7 @@ class FaceRecognitionClass:
         self.frameMain.place(relx=0.006, rely=0.015, relwidth=0.984, relheight=0.88)
         self.frameHeader = tk.Frame(self.frameMain, bg="#fff",highlightbackground="black",highlightthickness=1)
         self.frameHeader.place(relx=0, rely=0, relwidth=1, relheight=0.06)
-        self.title_lbl=tk.Label(self.frameHeader,text="Hệ thống chấm công",font=("Calibri",30,"bold"),bg="white",fg="darkgreen")
+        self.title_lbl=tk.Label(self.frameHeader,text="Hệ thống chấm công",font=("Calibri",30,"bold"),bg="white",fg="#0094cf")
         self.title_lbl.place(x=0, y=0,relwidth=1,height=50)
         self.frame1 = tk.LabelFrame(self.frameMain, bg="#fff",bd=2,relief=tk.RIDGE,text="Màn hình nhận diện",font=("Calibri",14,"bold"))
         self.frame1.place(relx=0.15, rely=0.065, relwidth=0.354, relheight=0.7)
@@ -77,7 +77,7 @@ class FaceRecognitionClass:
         self.txt3.place(x=160, y=350)
         #txt3.config(state='disabled')
 
-        self.lbl4 = tk.Label(self.frame2, text="Phòng ban : ",fg="black", bg="#fff" ,font=('Calibri', 14, ' bold ') )
+        self.lbl4 = tk.Label(self.frame2, text="Chức vụ : ",fg="black", bg="#fff" ,font=('Calibri', 14, ' bold ') )
         self.lbl4.place(x=30, y=390)
         self.txt4 = tk.Entry(self.frame2,width=32 ,fg="black",font=('times', 14, ' bold '),borderwidth=2, relief="ridge")
         self.txt4.place(x=160, y=390)
@@ -102,9 +102,9 @@ class FaceRecognitionClass:
 
         ###################### BUTTONS ##################################
 
-        self.openCameraBtn = tk.Button(self.frameMain, text="Mở camera", command=self.TrackImages  ,fg="#fff"  ,bg="red"  ,width=20  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.openCameraBtn = tk.Button(self.frameMain, text="Mở camera", command=self.TrackImages  ,fg="#fff"  ,bg="#0094cf"  ,width=20  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
         self.openCameraBtn.place(relx=0.19,y=740)
-        self.closeCameraBtn = tk.Button(self.frameMain, text="Đóng camera", command=self.closeCamera  ,fg="#fff"  ,bg="red"  ,width=20  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.closeCameraBtn = tk.Button(self.frameMain, text="Đóng camera", command=self.closeCamera  ,fg="#fff"  ,bg="#0094cf"  ,width=20  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
         self.closeCameraBtn.place(relx=0.33,y=740)
         self.closeCameraBtn.config(state='disabled')
 
@@ -157,6 +157,8 @@ class FaceRecognitionClass:
                     print("length 0")
                     self.frame2.update()
                 else:
+                    id = 'Unknown'
+                    fullName = 'Unknown'
                     for box,feature in zip(boxs, feature): 
                         feature = feature.reshape(-1, 3780) 
                         result = model.predict(feature) # du doan dac trung truyen vao so voi anh train
@@ -168,23 +170,31 @@ class FaceRecognitionClass:
                         x1, y1, x2, y2 = box
                         cv2.rectangle(frame, (y2, x1), (y1, x2), (255,255,255), 1)
                         namePre = name[0]
-                        if(class_probability<30):
-                            namePre = 'Unknow'
-                        cv2.putText(frame, namePre+':'+str(round(class_probability, 3))+'%',(y2, x1), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 255), 1) #viet text
+                        fullName = 'Unknown'
+                        if(class_probability<30 or namePre == 'Unknown'):
+                            namePre = 'Unknown'
+                            fullName = 'Unknown'
+                            id = 'Unknown'
+                        else:
+                            id = namePre.split('-')[0]
+                            fullName = namePre.split('-')[1]
+                        cv2.putText(frame, 'MNV: '+id,(y2, x1-55), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 255), 1) #viet text
+                        cv2.putText(frame, 'Ho ten: '+fullName,(y2, x1-30), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 255), 1) #viet text
+                        cv2.putText(frame, 'Accuracy: '+str(round(class_probability, 3))+'%',(y2, x1-7), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 255), 1) #viet text
                     cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     img = Image.fromarray(cv2image)
                     imgtk = ImageTk.PhotoImage(image = img)
                     self.video.imgtk = imgtk
                     self.video.configure(image=imgtk)
                     if namePre != 'Unknow':
-                        staff = self.getInfoUser(1,type)
+                        staff = self.getInfoUser(int(namePre.split('-')[0]),type)
                         if staff == None:
                             print("Khonng co nhan vien hoac nhan vien da điểm danh")
                             self.frame2.update()
                         else :
                             nowTime = datetime.now()
                             timeAttendance = nowTime.strftime("%d%m%Y")
-                            image = cv2.resize(cv2image, None, fx=ds_factor, fy=ds_factor, interpolation=cv2.INTER_AREA)
+                            image = cv2.resize(frame, None, fx=ds_factor, fy=ds_factor, interpolation=cv2.INTER_AREA)
                             if not os.path.exists('image_attendance'+'/'+timeAttendance):
                                 os.makedirs('image_attendance'+'/'+timeAttendance)
                             if(len(box) > 0):
@@ -202,6 +212,7 @@ class FaceRecognitionClass:
                 self.video.configure(image=imgtk)
 
                 self.frame2.update()
+                continue
             if isCloseCamera=='CLOSE':
                 break
         self.restartValue()
@@ -219,6 +230,12 @@ class FaceRecognitionClass:
         imgtk = ImageTk.PhotoImage(image = img_camera)
         self.video.imgtk = imgtk
         self.video.configure(image=imgtk)
+        self.img_unknow=Image.open(r"Image\unkownImage.jpg")
+        self.img_unknow = self.img_unknow.resize((217, 217),Image.ANTIALIAS)
+        self.photoimg=ImageTk.PhotoImage(self.img_unknow)
+        self.imageCapture =  tk.Label(self.frame2,bg="#efefef",borderwidth=2, relief="ridge",image=self.photoimg)
+        self.imageCapture.grid(row=0, column=0)
+        self.imageCapture.place(x=160, y=10,width=217,height=217)
         self.txt.configure(state='normal')
         self.txt.delete(0,"end")
         self.txt.insert(0,str(''))
@@ -237,14 +254,14 @@ class FaceRecognitionClass:
         self.txt4.configure(state='disabled')
         self.closeCameraBtn.config(state='disabled')
         self.openCameraBtn.config(state='active')
-        self.type_combo.config(state='active')
+        self.type_combo.config(state='readonly')
         self.frame2.update()
     def getInfoUser(self,id,type):
         try: 
             staff = None
             con = conMana.getConnection()
             cur = con.cursor()
-            sql = "select * from STAFF where staff_id= :staff_id and status = 1 and staff_id not in (select STAFF_ID from attendance where  attendance_type = :attendanceType and ATTENDANCE_DATE >TRUNC(SYSDATE) AND ATTENDANCE_DATE< TRUNC(SYSDATE+1))"
+            sql = "select * from STAFF where staff_id= :staff_id and status = 'ACTIVE' and staff_id not in (select STAFF_ID from attendance where  attendance_type = :attendanceType and ATTENDANCE_DATE >TRUNC(SYSDATE) AND ATTENDANCE_DATE< TRUNC(SYSDATE+1))"
             cur.execute(sql,staff_id =  int(id),attendanceType =type )
             res = cur.fetchall()
             for row in res:
