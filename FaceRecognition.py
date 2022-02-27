@@ -186,7 +186,7 @@ class FaceRecognitionClass:
                     imgtk = ImageTk.PhotoImage(image = img)
                     self.video.imgtk = imgtk
                     self.video.configure(image=imgtk)
-                    if namePre != 'Unknow':
+                    if namePre != 'Unknown':
                         staff = self.getInfoUser(int(namePre.split('-')[0]),type)
                         if staff == None:
                             print("Khonng co nhan vien hoac nhan vien da điểm danh")
