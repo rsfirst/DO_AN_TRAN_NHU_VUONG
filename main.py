@@ -16,6 +16,8 @@ from datetime import datetime
 from tkinter import filedialog
 import face_recognition
 from PreprocessingImage import *
+import pandas as pd
+import xlsxwriter
 conMana = ConnectionManage()
 
 ############################################# FUNCTIONS ################################################
@@ -90,7 +92,10 @@ class login_window:
                 else:
                     self.new_window=Toplevel(self.root)
                     self.root.destroy()
-                    self.app=Face_Recognition_System(row)
+                    if row[11] == "Quản trị" :
+                        self.app=Face_Recognition_System(row)
+                    else:
+                        self.app=Face_Recognition_System_Staff(row)
 
         except cx_Oracle.DatabaseError as e: 
             print("There is a problem with Oracle", e)
@@ -115,7 +120,7 @@ class Face_Recognition_System:
 
         # second image
 
-        img4 = Image.open(r"Image/bg.png")
+        img4 = Image.open(r"Image/mainBg.jpg")
 
         img4 = img4.resize((1450, 720), Image.ANTIALIAS)
         self.photoimg4 = ImageTk.PhotoImage(img4)
@@ -168,33 +173,23 @@ class Face_Recognition_System:
         btn3_3 = Button(bg_img, text="Quản lý nhân viên", cursor="hand2", command=self.staffManage,image = photoimage_staff,compound = TOP, font=("Tamaho", 20, "bold"),
                        bg="white", fg="#0094cf")
         btn3_3.place(x=980, y=100, width=300, height=150)
-
-        btn5_5 = Button(bg_img, text="Train Data", cursor="hand2",command=self.train_data, font=("Algerian", 20, "bold"),
-                        bg="darkblue", fg="white")
+        photo_report = PhotoImage(file = r"Image/report.png")
+        # Resizing image to fit on button
+        photoimage_report = photo_report.subsample(3, 3)
+        btn5_5 = Button(bg_img, text="Báo cáo thống kê", cursor="hand2",command=self.report, image = photoimage_report,compound = TOP,font=("Tamaho", 20, "bold"),
+                       bg="white", fg="#0094cf")
         btn5_5.place(x=100, y=350, width=300, height=150)
 
-        btn6_6 = Button(bg_img, text="Photos", cursor="hand2",command=self.open_img, font=("Algerian", 20, "bold"),
-                        bg="darkblue", fg="white")
-        btn6_6.place(x=520, y=350, width=300, height=150)
-
-        btn8_8 = Button(bg_img, text="Exit",command=self.iexit,cursor="hand2", font=("Algerian", 20, "bold"),
-                        bg="darkblue", fg="white")
-        btn8_8.place(x=980, y=350, width=300, height=150)
         winMain.mainloop()
-
-    def open_img(self):
-        os.startfile("data")
-    def command(self):
-        print("hi")
     # =================================== Functions =========================================
 
     def accountManage(self):
         self.new_window=Toplevel(self.root)
         self.app=Account_Manage(self.new_window,self.userLogin)
     
-    def train_data(self):
+    def report(self):
         self.new_window=Toplevel(self.root)
-        #self.app=Train(self.new_window)
+        self.app=Report_Manage(self.new_window,self.userLogin)
 
     def face_data(self):
         self.new_window=Toplevel(self.root)
@@ -210,13 +205,95 @@ class Face_Recognition_System:
             self.new_window=Toplevel(self.root)
             self.root.destroy()
             main()
-# .................exit button
-    def iexit(self):
-        self.iexit=tkinter.messagebox.askyesno("Face Recognition","Are you sure you want to exit this project?",parent=self.root)
-        if self.iexit>0:
+class Face_Recognition_System_Staff:
+    def __init__(self,user):
+        self.userLogin = user
+        winMain = Tk()
+        self.root = winMain
+        app_width = 1450
+        app_height = 720
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width / 2) - (app_width / 2)
+        y = (screen_height / 2) - (app_height / 2)-100
+        self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+        self.root.resizable(False,False)
+        self.root.title("Hệ thống chấm công")
+
+        # second image
+
+        img4 = Image.open(r"Image/mainBg.jpg")
+
+        img4 = img4.resize((1450, 720), Image.ANTIALIAS)
+        self.photoimg4 = ImageTk.PhotoImage(img4)
+
+        bg_img = Label(self.root, image=self.photoimg4)
+        bg_img.place(x=0, y=0, width=1450, height=720)
+
+        title_lblEmpty = Label(bg_img, text="",
+                          font=("Algerian", 30, "bold"), fg="#0094cf")
+        title_lblEmpty.place(x=0, y=0, width=260, height=50)
+
+        title_lbl = Label(bg_img, text="HỆ THỐNG CHẤM CÔNG",
+                          font=("Algerian", 30, "bold"), fg="#0094cf")
+        title_lbl.place(x=240, y=0, width=1000, height=50)
+
+        title_lblUser = Label(bg_img, text="Username : "+user[1],
+                          font=("Tamaho", 11, "bold"), fg="black")
+        title_lblUser.place(x=1000, y=0, width=300, height=50)
+
+        title_lblLogout = Label(bg_img, text="Username : "+user[1],
+                          font=("Tamaho", 11, "bold"), fg="black")
+        title_lblLogout.place(x=1300, y=0, width=150, height=50)   
+
+        photo = PhotoImage(file = r"Image/icon-logout.png")
+        # Resizing image to fit on button
+        photoimage = photo.subsample(3, 3)
+
+        btnLogout = Button(title_lblLogout, text="Đăng xuất",image = photoimage,compound = LEFT, command=self.logout, cursor="hand2", font=("Tamaho", 11, "bold"),
+                         fg="#0094cf")
+        btnLogout.place(x=0, y=-2, width=150, height=50)
+
+        photo_face_detect = PhotoImage(file = r"Image/icon_face_detect.png")
+        # Resizing image to fit on button
+        photoimage_detect = photo_face_detect.subsample(3, 3)
+
+        btn2_2 = Button(bg_img, text="Nhận diện", cursor="hand2",command=self.face_data,image = photoimage_detect,compound = TOP, font=("Tamaho", 20, "bold"),
+                        bg="white", fg="#0094cf")
+        btn2_2.place(x=400, y=100, width=300, height=150)
+
+        photo_report = PhotoImage(file = r"Image/report.png")
+        # Resizing image to fit on button
+        photoimage_report = photo_report.subsample(3, 3)
+        btn5_5 = Button(bg_img, text="Báo cáo thống kê", cursor="hand2",command=self.report, image = photoimage_report,compound = TOP,font=("Tamaho", 20, "bold"),
+                       bg="white", fg="#0094cf")
+        btn5_5.place(x=790, y=100, width=300, height=150)
+
+        winMain.mainloop()
+    # =================================== Functions =========================================
+
+    def accountManage(self):
+        self.new_window=Toplevel(self.root)
+        self.app=Account_Manage(self.new_window,self.userLogin)
+    
+    def report(self):
+        self.new_window=Toplevel(self.root)
+        self.app=Report_Manage(self.new_window,self.userLogin)
+
+    def face_data(self):
+        self.new_window=Toplevel(self.root)
+        self.app=FaceRecognitionClass(self.new_window,model,label_encoder)  
+
+    def staffManage(self):
+        self.new_window=Toplevel(self.root)
+        self.app=Staff_Manage(self.new_window,self.userLogin)
+    def logout(self):
+        answer = messagebox.askyesno(title='Thông báo',
+            message='Bạn có chắc chắn đăng xuất ?',parent=self.root)
+        if answer:
+            self.new_window=Toplevel(self.root)
             self.root.destroy()
-        else:
-            return
+            main()
 
 class Staff_Manage:
     state_form = 'DEFAULT'
@@ -1252,6 +1329,332 @@ class Account_Manage:
             if con: 
                 con.close()
         return 'SUCCESS'
+class Report_Manage:
+    global state_form
+    state_form = 'DEFAULT'
+    def __init__(self,root,user):
+        self.userLogin = user[1]
+        self.var_staffId = StringVar()
+        self.var_fullName = StringVar()
+        self.var_position = StringVar()
+        self.var_dateReport = StringVar()
+        self.var_attendanceDate = StringVar()
+        self.var_attendanceType = StringVar()
+        self.var_attendanceImage = StringVar()
+        self.var_status = StringVar()
+
+        self.var_staffIdSearch=StringVar()
+        self.var_fullNameSearch=StringVar()
+        self.var_fromDateSearch=StringVar()
+        self.var_toDateSearch=StringVar()
+        self.var_positionSearch=StringVar()
+        self.var_attendanceTypeSearch=StringVar()
+        self.listData= []
+        self.root = root
+        app_width = 1880
+        app_height = 1000
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width / 2) - (app_width / 2)
+        y = (screen_height / 2) - (app_height / 2) -30
+        self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+        self.root.resizable(False,False)
+        self.root.title("Báo cáo chấm công")
+        self.root.configure(background='#0094cf')
+        frameMain = Frame(self.root, bg="#fff",highlightbackground="black",highlightthickness=1)
+        frameMain.place(relx=0.006, rely=0.015, relwidth=0.984, relheight=0.88)
+        frameHeader = Frame(frameMain, bg="#fff",highlightbackground="black",highlightthickness=1)
+        frameHeader.place(relx=0, rely=0, relwidth=1, relheight=0.06)
+        title_lbl=Label(frameHeader,text="Báo cáo chấm công",font=("Calibri",30,"bold"),bg="white",fg="#0094cf")
+        title_lbl.place(x=0, y=0,relwidth=1,height=50)
+        frame1 = LabelFrame(frameMain, bg="#fff",bd=2,relief=RIDGE,text="Thông tin chấm công",font=("Calibri",14,"bold"))
+        frame1.place(x=10, y=60, width=900,height=700)
+
+        frame2 = LabelFrame(frameMain, bg="#fff",bd=2,relief=RIDGE,text="Danh sách chấm công",font=("Calibri",14,"bold"))
+        frame2.place(x=935, y=60, width=900,height=700)
+
+        lblStaffIdDetail = Label(frame1, text="Mã nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblStaffIdDetail.place(x=30, y=20)
+        self.txtStaffIdDetail = Entry(frame1,textvariable=self.var_staffId,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtStaffIdDetail.place(x=170, y=20)
+        self.txtStaffIdDetail.configure(state='disabled')
+
+        lblFullNameDetail = Label(frame1, text="Tên nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblFullNameDetail.place(x=460, y=20)
+        self.txtFullNameDetail = Entry(frame1,textvariable=self.var_fullName,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtFullNameDetail.place(x=600, y=20)
+        self.txtFullNameDetail.configure(state='disabled')
+
+
+        lblPositionDetail = Label(frame1, text="Chức vụ : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblPositionDetail.place(x=30, y=70)
+        self.cboPositionDetail = ttk.Combobox(frame1,textvariable=self.var_position,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboPositionDetail.place(x=170, y=70)
+        self.cboPositionDetail["values"]=("Giám đốc","Trưởng phòng","Nhân viên")
+        self.cboPositionDetail.current(0)
+        self.cboPositionDetail.configure(state='disabled')
+
+        lblFromDate = Label(frame1, text="Ngày : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblFromDate.place(x=460, y=70)
+        self.calFromDate= DateEntry(frame1,textvariable=self.var_dateReport, width=37,locale='en_US', date_pattern='dd/mm/y',
+         background='darkblue', foreground='white', borderwidth=2)
+        self.calFromDate.place(x=600, y=70)
+        self.calFromDate.configure(state='disabled')
+
+        lblAttendanceDateDetail = Label(frame1, text="Thời gian chấm công : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblAttendanceDateDetail.place(x=30, y=120)
+        self.txtAttendanceDateDetail = Entry(frame1,textvariable=self.var_attendanceDate,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtAttendanceDateDetail.place(x=170, y=120)
+        self.txtAttendanceDateDetail.configure(state='disabled')
+
+        lblTypeDetail= Label(frame1, text="Loại chấm công : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblTypeDetail.place(x=460, y=120)
+        self.txtTypeDetail = Entry(frame1,textvariable=self.var_attendanceType,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtTypeDetail.place(x=600, y=120)
+        self.txtTypeDetail.configure(state='disabled')
+
+        lblImageDetail= Label(frame1, text="Hình ảnh chấm công : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblImageDetail.place(x=30, y=170)
+        self.txtImageDetail = Entry(frame1,textvariable=self.var_attendanceImage,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtImageDetail.place(x=170, y=170)
+        self.txtImageDetail.configure(state='disabled')
+
+        lblStatusDetail = Label(frame1, text="Trạng thái chấm công : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblStatusDetail.place(x=460, y=170)
+        self.txtstatusDetail = Entry(frame1,textvariable=self.var_status,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtstatusDetail.place(x=600, y=170)
+        self.txtstatusDetail.configure(state='disabled')
+
+        table_frame=Frame(frame2,bd=2,bg="white",relief=RIDGE)
+        table_frame.place(x=5,y=230,width=880,height=420)
+        scroll_x=ttk.Scrollbar(table_frame,orient=HORIZONTAL)
+        scroll_y=ttk.Scrollbar(table_frame,orient=VERTICAL) 
+        self.account_table=ttk.Treeview(table_frame,column=("staffId","fullName","position","dateReport","attendanceDate","attendanceType","attendanceImage","status"),xscrollcommand=scroll_x.set,yscrollcommand=scroll_y.set)
+        scroll_x.pack(side=BOTTOM,fill=X)
+        scroll_y.pack(side=RIGHT,fill=Y)
+        scroll_x.config(command=self.account_table.xview)
+        scroll_y.config(command=self.account_table.yview)
+        self.account_table.heading("staffId",text="Mã nhân viên")
+        self.account_table.heading("fullName",text="Tên nhân viên")
+        self.account_table.heading("position",text="Chức vụ")
+        self.account_table.heading("dateReport",text="Ngày")
+        self.account_table.heading("attendanceDate",text="Thời gian chấm công")
+        self.account_table.heading("attendanceType",text="Loại chấm công")
+        self.account_table.heading("attendanceImage",text="Hình ảnh chấm công")
+        self.account_table.heading("status",text="Trạng thái")
+        self.account_table["show"]="headings"
+
+        self.account_table.column("staffId",width=100)
+        self.account_table.column("fullName",width=200)
+        self.account_table.column("position",width=130)
+        self.account_table.column("dateReport",width=100)
+        self.account_table.column("attendanceDate",width=130)
+        self.account_table.column("attendanceType",width=130)
+        self.account_table.column("attendanceImage",width=300)
+        self.account_table.column("status",width=100)
+        self.account_table.pack(fill=BOTH,expand=1)
+
+        self.account_table.bind("<ButtonRelease>",self.get_cursor)
+        
+        self.fetch_data()
+        self.btnViewImage = Button(frame1, text="Xem ảnh", command=self.viewImage  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnViewImage.place(x=270, y=220)
+        self.btnViewImage.config(state='disabled')
+        self.btnExport = Button(frame1, text="Xuất báo cáo", command=self.export  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnExport.place(x=450, y=220)
+        self.btnViewImage.config(state='disabled')
+
+        lblStaffIdSearch = Label(frame2, text="Mã nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblStaffIdSearch.place(x=30, y=20)
+        self.txtStaffIdSearch = Entry(frame2,textvariable=self.var_staffIdSearch,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtStaffIdSearch.place(x=160, y=20)
+
+        lblFullNameSearch = Label(frame2, text="Tên nhân viên : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblFullNameSearch.place(x=470, y=20)
+        self.txtFullNameSearch = Entry(frame2,textvariable=self.var_fullNameSearch,width=30 ,fg="black",font=('times', 11, ' bold '),borderwidth=2, relief="ridge")
+        self.txtFullNameSearch.place(x=600, y=20)
+
+        lblFromDate = Label(frame2, text="Từ ngày : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblFromDate.place(x=30, y=70)
+        self.calFromDate= DateEntry(frame2,textvariable=self.var_fromDateSearch, width=37,locale='en_US', date_pattern='dd/mm/y',
+         background='darkblue', foreground='white', borderwidth=2)
+        self.calFromDate.place(x=160, y=70)
+
+        lblToDate = Label(frame2, text="Đến ngày : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblToDate.place(x=470, y=70)
+        self.calToDate= DateEntry(frame2,textvariable=self.var_toDateSearch, width=37,locale='en_US', date_pattern='dd/mm/y',
+         background='darkblue', foreground='white', borderwidth=2)
+        self.calToDate.place(x=600, y=70)
+
+
+        lblPosition = Label(frame2, text="Chức vụ : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblPosition.place(x=30, y=120)
+        self.cboPosition = ttk.Combobox(frame2,textvariable=self.var_positionSearch,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboPosition.place(x=160, y=120)
+        self.cboPosition["values"]=("Tất cả","Giám đốc","Trưởng phòng","Nhân viên")
+        self.cboPosition.current(0)
+
+        lblAttendanceTypeSearch = Label(frame2, text="Loại chấm công : " ,fg="black", bg="#fff" ,font=('Calibri', 11, ' bold ') )
+        lblAttendanceTypeSearch.place(x=470, y=120)
+        self.cboAttendanceTypeSearch = ttk.Combobox(frame2,textvariable=self.var_attendanceTypeSearch,font=("Calibri",11,"bold"),state="readonly",width=32)
+        self.cboAttendanceTypeSearch.place(x=600, y=120)
+        self.cboAttendanceTypeSearch["values"]=("Vào","Ra")
+        self.cboAttendanceTypeSearch.current(0)
+
+        self.btnSearch = Button(frame2, text="Tìm kiếm", command=self.search  ,fg="#fff"  ,bg="#0094cf"  ,width=10  ,height=1, activebackground = "white" ,font=('times', 15, ' bold '))
+        self.btnSearch.place(x=600, y=170)
+    def fetch_data(self):
+        try: 
+            con = conMana.getConnection()
+            cur = con.cursor()
+            sql = "select * from table(show_attendance_detail(to_char(sysdate,'dd/MM/yyyy'),to_char(sysdate,'dd/MM/yyyy'),1,null,null,'Tất cả')) "
+            cur.execute(sql)
+            data = cur.fetchall()
+            if len(data)!=0:
+                self.account_table.delete(*self.account_table.get_children())
+                self.listData = data
+                for i in data:
+                    self.account_table.insert("",END,values=i)
+            else:
+                self.listData = []
+        except cx_Oracle.DatabaseError as e: 
+            print("There is a problem with Oracle", e)
+        finally:
+            if con: 
+                con.close()
+    def get_cursor(self,event=""):
+        cursor_focus=self.account_table.focus()
+        content=self.account_table.item(cursor_focus)
+        data=content["values"]
+        if(data != None):
+            self.var_staffId.set(data[0]),
+            self.var_fullName.set(data[1]),
+            self.var_position.set(data[2]),
+            self.var_dateReport.set(data[3]),
+            self.var_attendanceDate.set(data[4]),
+            self.var_attendanceType.set(data[5]),
+            self.var_attendanceImage.set(data[6]),
+            self.var_status.set(data[7]),
+            if(self.var_attendanceImage.get() != "None"):
+                self.btnViewImage.config(state='active')
+            else:
+                self.btnViewImage.config(state='disabled')
+    def search(self):
+        try: 
+            con = conMana.getConnection()
+            cur = con.cursor()
+            sql = "select * from table(show_attendance_detail(:fromDate,:toDate,:type,:staffId,:fullName,:position)) "
+            typeAttendance = 1
+            if self.var_attendanceTypeSearch.get() == 'Vào':
+                typeAttendance = 1
+            else :
+                typeAttendance = 2
+            cur.execute(sql,fromDate = self.var_fromDateSearch.get(),toDate = self.var_toDateSearch.get(),type = typeAttendance,staffId = self.var_staffIdSearch.get(),fullName = self.var_fullNameSearch.get(),position = self.var_positionSearch.get() )
+            data = cur.fetchall()
+            self.account_table.delete(*self.account_table.get_children())
+            if len(data)!=0:
+                self.listData = data
+                self.btnExport.config(state='active')
+                for i in data:
+                    self.account_table.insert("",END,values=i)
+            else :
+                self.listData = []
+                self.btnExport.config(state='disabled')
+        except cx_Oracle.DatabaseError as e: 
+            print("There is a problem with Oracle", e)
+        finally:
+            if con: 
+                con.close()
+    def viewImage(self):
+        image = Image.open(self.var_attendanceImage.get())
+        image.show()
+    def export(self):
+        now = datetime.now()
+        dt_string = now.strftime("%d%m%Y%H%M%S")
+        fileName = "Bao_cao_cham_cong_"+dt_string+".xlsx"
+        file = filedialog.asksaveasfile(initialfile =fileName, defaultextension='.xlsx',
+                                        filetypes=[
+                                        ("Excel file",".xlsx")
+                                    ],parent=self.root)
+        if file is None:
+            return
+        arrayStaffId = []
+        arrayFullName = []
+        arrayPosition = []
+        arrayDateReport = []
+        arrayAttendanceDate = []
+        arrayAttendanceType = []
+        arrayAttendanceImage = []
+        arrayStatus = []
+        for item in self.listData:
+            arrayStaffId.append(item[0])
+            arrayFullName.append(item[1])
+            arrayPosition.append(item[2])
+            arrayDateReport.append(item[3])
+            arrayAttendanceDate.append(item[4])
+            arrayAttendanceType.append(item[5])
+            arrayAttendanceImage.append(item[6])
+            arrayStatus.append(item[7])
+        data = {'Mã nhân viên': arrayStaffId,
+        'Tên nhân viên': arrayFullName,
+        'Chức vụ': arrayPosition,
+        'Ngày': arrayDateReport,
+        'Thời gian chấm công': arrayAttendanceDate,
+        'Loại chấm công': arrayAttendanceType,
+        'Hình ảnh chấm công': arrayAttendanceImage,
+        'Trạng thái': arrayStatus,
+        }
+        df = pd.DataFrame(data)
+
+        # Create a Pandas Excel writer using XlsxWriter as the engine.
+        writer = pd.ExcelWriter(file.name, engine='xlsxwriter')
+
+        # Convert the dataframe to an XlsxWriter Excel object.
+        df.to_excel(writer, sheet_name='Sheet1',startrow = 8, index = False, header=True)
+
+        # Get the xlsxwriter workbook and worksheet objects.
+        workbook  = writer.book
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_row(0, 40)
+        worksheet.set_row(8, 30)
+        merge_format = workbook.add_format({
+        'bold': 1,
+        'align': 'center',
+        'valign': 'vcenter','bold': True, 'size': 16})
+        
+        worksheet.merge_range('A1:H1', 'BÁO CÁO THỐNG KÊ CHẤM CÔNG', merge_format)
+        header_format = workbook.add_format({'bold': True, 'text_wrap': True, 'fg_color': '#FDE9D9', 'border': 1,'align': 'center',
+        'valign': 'vcenter'})
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(8, col_num, value, header_format)
+        worksheet.set_column(0, 0, 15)
+        worksheet.set_column(1, 1, 25)
+        worksheet.set_column(2, 2, 15)
+        worksheet.set_column(3, 3, 20)
+        worksheet.set_column(4, 4, 25)
+        worksheet.set_column(5, 5, 20)
+        worksheet.set_column(6, 6, 50)
+        worksheet.set_column(7, 7, 15)
+        worksheet.write(2, 3, "Từ ngày :", workbook.add_format({'bold': True}))
+        worksheet.write(2, 4, self.var_fromDateSearch.get(), workbook.add_format({'bold': True}))
+        worksheet.write(3, 3, "Đến ngày :", workbook.add_format({'bold': True}))
+        worksheet.write(3, 4, self.var_toDateSearch.get(), workbook.add_format({'bold': True}))
+        worksheet.write(4, 3, "Chức vụ :", workbook.add_format({'bold': True}))
+        worksheet.write(4, 4, self.var_positionSearch.get(), workbook.add_format({'bold': True}))
+        worksheet.write(5, 3, "Loại chấm công :", workbook.add_format({'bold': True}))
+        worksheet.write(5, 4, self.var_attendanceTypeSearch.get(), workbook.add_format({'bold': True}))
+        worksheet.write(6, 3, "User tạo báo cáo :", workbook.add_format({'bold': True}))
+        worksheet.write(6, 4, self.userLogin, workbook.add_format({'bold': True}))
+        row_idx, col_idx = df.shape
+        for r in range(row_idx):
+            for c in range(col_idx):
+                if c==2  or c==3 or c==4 or c==5 or c==7:
+                    worksheet.write(r + 9, c, df.values[r, c], workbook.add_format({'border': 1,'align': 'center'}))
+                else :
+                    worksheet.write(r + 9, c, df.values[r, c], workbook.add_format({'border': 1}))
+        # Close the Pandas Excel writer and output the Excel file.
+        writer.save()
+        file.close()
 if __name__ == "__main__":
     global model
     global label_encoder
